@@ -1,0 +1,76 @@
+newtype State a = State { runState :: Env -> Pair a Env }
+
+instance Monad State where
+  return x = State (\s -> (x :!: s))
+  m >>= f = State (\s -> let (v :!: s') = runState m s in runState (f v) s')
+
+monad.1   return x >>= f   =  f x
+monad.2   t >>= return     = t
+monad.3   (t >>= f) >= g   = t >>= (\x -> f x >>= g)
+
+-- 1 a
+
+-- monad.1
+return x >>= f
+= <state.1>
+State (\s -> (x :!: s)) >>= f
+= <state.2>
+State (\s -> let (v :!: s') = runState (State (\s -> (x :!: s))) s
+             in runState (f v) s')
+= <def runState>
+State (\s -> let (v :!: s') = (\s -> (x :!: s)) s
+             in runState (f v) s')
+= <beta-redex>
+State (\s -> let (v :!: s') = (x :!: s) in runState (f v) s')
+= <def Let>
+= State (\s -> runState (f x) s)
+= < eta-redex >
+= State (runState (f x))
+= < State . runState = Id >
+f x
+
+
+
+-- monad.2
+t >>= return
+= < t :: State a >
+State g >>= return
+= <state.2>
+State (\s -> let (v :!: s') = runState (State g) s in runState (return v) s')
+= <def runState>
+State (\s -> let (v :!: s') = g s in runState (return v) s')
+= <state.1>
+= State (\s -> let (v :!: s') = g s in runState (State (\s -> (v :!: s))) s')
+= <def runState>
+= State (\s -> let (v :!: s') = g s in (\s -> (v :!: s)) s')
+<beta-redex>
+= State (\s -> let (v :!: s') = g s in (v :!: s'))
+= <def let>
+= State (\s -> g s)
+= < \eta-redex >
+= State g
+
+
+-- monad.3
+(t >>= f) >>= g
+= < t :: State a>
+(State h >>= f) >== g
+= <state.2>
+= State (\s -> let (v :!: s') = runState (State h) s
+               in runState (f v) s') >>= g
+<def runState>
+= State (\s -> let (v :!: s') = h s
+               in runState (f v) s') >>= g
+= <state.2>
+State (\z -> let (b :!: z') = runState m z in runState (g b) z')
+< m = State (\s -> let (v :!: s') = h s in runState (f v) s') y def runState>
+State (\z -> let (b :!: z') = (\s -> let (v :!: s') = h s in runState (f v) s') z 
+            in runState (g b) z')
+= <beta-redex>
+State (\z -> let (b :!: z') = (let (v :!: s') = h z in runState (f v) s')
+             in runState (g b) z')
+
+(State h) >== (\x -> f x >>= g)
+< >
+
+
