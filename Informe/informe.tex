@@ -1,0 +1,129 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper, margin=2.54cm]{geometry}
+\usepackage[utf8]{inputenc}
+% \usepackage[spanish, mexico]{babel}
+\usepackage[spanish]{layout}
+\usepackage[article]{ragged2e}
+\usepackage{textcomp}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{fancyvrb}
+\usepackage{xcolor}
+% \usepackage{proof}
+
+% \setlength{\parindent}{5pt}
+
+\title{
+    Trabajo Práctico N° 4 \\
+    \large Análisis de Lenguajes de Programación}
+\author{Mellino, Natalia \and Farizano, Juan Ignacio}
+\date{}
+
+\begin{document}
+\maketitle
+\noindent\rule{\textwidth}{1pt}
+
+\section*{Ejercicio 1) a.}
+
+\subsection*{Monad.1}
+
+Queremos probar \texttt{return x >>= f = f x}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+    \textcolor{black}{return x >>= f}
+    \textcolor{red}{= <state.1>}
+    \textcolor{black}{State (\textbackslash s -> (x :!: s)) >>= f}
+    \textcolor{red}{= <state.2>}
+    \textcolor{black}{State (\textbackslash s -> let (v :!: s') = runState (State (\textbackslash s -> (x :!: s))) s
+                                   in runState (f v) s')}
+    \textcolor{red}{= <def runState>}
+    \textcolor{black}{State (\textbackslash s -> let (v :!: s') = (\\s -> (x :!: s)) s
+                                                 in runState (f v) s')}
+    \textcolor{red}{= <beta-redex>}
+    \textcolor{black}{State (\textbackslash s -> let (v :!: s') = (x :!: s) in runState (f v) s')}
+    \textcolor{red}{= <def Let>}
+    \textcolor{black}{= State (\textbackslash s -> runState (f x) s)}
+    \textcolor{red}{= < eta-redex >}
+    \textcolor{black}{= State (runState (f x))}
+    \textcolor{red}{= < State . runState = Id >}
+    \textcolor{black}{f x}
+\end{Verbatim}
+
+\subsection*{Monad.2}
+
+Queremos probar: \texttt{t >>= return     = t}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+    \textcolor{black}{t >>= return}
+    \textcolor{red}{= < t :: State a >}
+    \textcolor{black}{State g >>= return}
+    \textcolor{red}{= <state.2>}
+    \textcolor{black}{State (\textbackslash s -> let (v :!: s') = runState (State g) s in runState (return v) s')}
+    \textcolor{red}{= <def runState>}
+    \textcolor{black}{State (\textbackslash s -> let (v :!: s') = g s in runState (return v) s')}
+    \textcolor{red}{= <state.1>}
+    \textcolor{black}{= State (\textbackslash s -> let (v :!: s') = g s in runState (State (\textbackslash s -> (v :!: s))) s')}
+    \textcolor{red}{= <def runState>}
+    \textcolor{black}{= State (\textbackslash s -> let (v :!: s') = g s in (\textbackslash s -> (v :!: s)) s')}
+    \textcolor{red}{=<beta-redex>}
+    \textcolor{black}{= State (\textbackslash s -> let (v :!: s') = g s in (v :!: s'))}
+    \textcolor{red}{= <def let>}
+    \textcolor{black}{= State (\textbackslash s -> g s)}
+    \textcolor{red}{= < eta-redex >}
+    \textcolor{black}{= State g}
+\end{Verbatim}
+
+\subsection*{Monad.3}
+
+Queremos probar: \texttt{(t >>= f) >= g   = t >>= (\textbackslash x -> f x >>= g)}
+
+\begin{Verbatim}[commandchars=\\\{\}] 
+    (t >>= f) >>= g
+    \textcolor{red}{= < t :: State a -> t = State h >}
+    \textcolor{black}{(State h >>= f) >== g}
+    \textcolor{red}{= <state.2>}
+    State (\textbackslash s -> let (v :!: s') = runState (State h) s
+                  in runState (f v) s') >>= g
+    \textcolor{red}{= <def runState>}
+    State (\textbackslash s -> let (v :!: s') = h s 
+                  in runState (f v) s') >>= g
+    \textcolor{red}{= <state.2>}
+    State (\textbackslash z -> let (b :!: z') = runState (State (\textbackslash s -> let (v :!: s') = h s
+                                                           in (runState (f v)) s')) z
+                  in runState (g b) z')
+    \textcolor{red}{= <def runState>}
+    State (\textbackslash z -> let (b :!: z') = (\textbackslash s -> let (v :!: s') = h s 
+                                           in (runState (f v)) s') z
+                  in runState (g b) z')
+    \textcolor{red}{= <beta-redex>}
+    State (\textbackslash z -> let (b :!: z') = (let (v :!: s') = h z 
+                                    in (runState (f v)) s')
+                  in runState (g b) z')
+    \textcolor{red}{= < prop let | x = (b :!: z'), y = (v :!: s'), f = h z, h y = (runState (f v)) s', g x = runState (g b) z'>}
+    State (\textbackslash z -> let (v :!: s') = h z in (let (b :!: z') = (runState (f v)) s' 
+                                           in runState (g b) z'))
+    \textcolor{red}{= < beta-expand >}
+    = State (\textbackslash z -> let (v :!: s') = h z in (\textbackslash s -> let (b :!: z') = (runState (f v)) s
+                                                    in runState (g b) z') s')
+    \textcolor{red}{= < def runState >}
+    State (\textbackslash z -> let (v :!: s') = h z 
+                  in runState (State (\textbackslash s -> let (b :!: z') = (runState (f v)) s
+                                             in runState (g b) z')) s')
+    \textcolor{red}{= < beta-expand >}
+    State (\textbackslash z -> let (v :!: s') = h z 
+                  in runState ((\textbackslash x -> (State (\textbackslash s -> let (b :!: z') = (runState (f x)) s
+                                                      in runState (g b) z'))) v) s')
+    \textcolor{red}{= < state.2 >}
+    State (\textbackslash z -> let (v :!: s') = h z 
+                  in runState ((\textbackslash x -> f x >>= g) v) s')
+    \textcolor{red}{= < def runState >}
+    State (\textbackslash z -> let (v :!: s') = runState (State h) z 
+                  in runState ((\textbackslash x -> f x >>= g) v) s')
+    \textcolor{red}{= < state.2 >}
+    (State h) >>= (\textbackslash x -> f x >>= g)
+    \textcolor{red}{= < t :: State a -> t = State h >}
+    t >>= (\textbackslash x -> f x >>= g)
+\end{Verbatim}
+
+\end{document}
