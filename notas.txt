@@ -53,7 +53,7 @@ State (\s -> let (v :!: s') = g s in runState (return v) s')
 
 -- monad.3
 (t >>= f) >>= g
-= < t :: State a>
+= < t :: State a >
 (State h >>= f) >== g
 = <state.2>
 = State (\s -> let (v :!: s') = runState (State h) s
@@ -62,15 +62,31 @@ State (\s -> let (v :!: s') = g s in runState (return v) s')
 = State (\s -> let (v :!: s') = h s
                in runState (f v) s') >>= g
 = <state.2>
-State (\z -> let (b :!: z') = runState m z in runState (g b) z')
-< m = State (\s -> let (v :!: s') = h s in runState (f v) s') y def runState>
-State (\z -> let (b :!: z') = (\s -> let (v :!: s') = h s in runState (f v) s') z 
-            in runState (g b) z')
+= State (\z -> let (b :!: z') = runState (State (\s -> let (v :!: s') = h s in (runState (f v)) s')) z
+               in runState (g b) z')
+<def runState>
+= State (\z -> let (b :!: z') = (\s -> let (v :!: s') = h s in (runState (f v)) s') z
+               in runState (g b) z')
 = <beta-redex>
-State (\z -> let (b :!: z') = (let (v :!: s') = h z in runState (f v) s')
-             in runState (g b) z')
+= State (\z -> let (b :!: z') = (let (v :!: s') = h z in (runState (f v)) s')
+               in runState (g b) z')
+    
 
+
+t = State h
 (State h) >== (\x -> f x >>= g)
-< >
-
-
+< state.2 >
+State (\s -> let (v :!: s') = runState (State h) s in runState ((\x -> f x >>= g) v) s')
+< def runState >
+State (\s -> let (v :!: s') = h s in runState ((\x -> f x >>= g) v) s')
+< state.2 >
+State (\s -> let (v :!: s') = h s in runState ((\x -> (State (\z -> let (b :!: z') = runState (f x) z 
+                                                       in runState (g b) z'))) v) s')
+< beta-redex >
+State (\s -> let (v :!: s') = h s in runState (State (\z -> let (b :!: z') = runState (f v) z 
+                                                       in runState (g b) z')) s')
+< def runState >
+State (\s -> let (v :!: s') = h s in (\z -> let (b :!: z') = runState (f v) z
+                                            in runState (g b) z') s')
+< beta-redex >
+State (\s -> let (v :!: s') = h s in (let (b :!: z') = runState (f v) s' in runState (g b) z'))

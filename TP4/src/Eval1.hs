@@ -85,7 +85,7 @@ evalExp (Minus e0 e1) = do n0 <- evalExp e0
                            return (n0 - n1)
 evalExp (Times e0 e1) = do n0 <- evalExp e0
                            n1 <- evalExp e1
-                           return (n0 + n1)
+                           return (n0 * n1)
 evalExp (Div e0 e1) = do n0 <- evalExp e0
                          n1 <- evalExp e1
                          return (n0 `div` n1)
