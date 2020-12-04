@@ -8,6 +8,18 @@ monad.1   return x >>= f   =  f x
 monad.2   t >>= return     = t
 monad.3   (t >>= f) >= g   = t >>= (\x -> f x >>= g)
 
+{-  Si y ∉ FV (g x) entonces: -} 
+
+  let x = let y = f
+          in h y 
+  in g x  
+   
+   = 
+   
+   let y = f 
+       in let x = h y
+          in g x 
+
 -- 1 a
 
 -- monad.1
@@ -53,40 +65,40 @@ State (\s -> let (v :!: s') = g s in runState (return v) s')
 
 -- monad.3
 (t >>= f) >>= g
-= < t :: State a >
+= < t :: State a -> t = State h >
 (State h >>= f) >== g
 = <state.2>
-= State (\s -> let (v :!: s') = runState (State h) s
-               in runState (f v) s') >>= g
-<def runState>
-= State (\s -> let (v :!: s') = h s
-               in runState (f v) s') >>= g
+State (\s -> let (v :!: s') = runState (State h) s
+              in runState (f v) s') >>= g
+= <def runState>
+State (\s -> let (v :!: s') = h s
+              in runState (f v) s') >>= g
 = <state.2>
-= State (\z -> let (b :!: z') = runState (State (\s -> let (v :!: s') = h s in (runState (f v)) s')) z
-               in runState (g b) z')
-<def runState>
-= State (\z -> let (b :!: z') = (\s -> let (v :!: s') = h s in (runState (f v)) s') z
-               in runState (g b) z')
+State (\z -> let (b :!: z') = runState (State (\s -> let (v :!: s') = h s in (runState (f v)) s')) z
+             in runState (g b) z')
+= <def runState>
+State (\z -> let (b :!: z') = (\s -> let (v :!: s') = h s in (runState (f v)) s') z
+             in runState (g b) z')
 = <beta-redex>
-= State (\z -> let (b :!: z') = (let (v :!: s') = h z in (runState (f v)) s')
-               in runState (g b) z')
-    
-
-
-t = State h
-(State h) >== (\x -> f x >>= g)
-< state.2 >
-State (\s -> let (v :!: s') = runState (State h) s in runState ((\x -> f x >>= g) v) s')
-< def runState >
-State (\s -> let (v :!: s') = h s in runState ((\x -> f x >>= g) v) s')
-< state.2 >
-State (\s -> let (v :!: s') = h s in runState ((\x -> (State (\z -> let (b :!: z') = runState (f x) z 
-                                                       in runState (g b) z'))) v) s')
-< beta-redex >
-State (\s -> let (v :!: s') = h s in runState (State (\z -> let (b :!: z') = runState (f v) z 
-                                                       in runState (g b) z')) s')
-< def runState >
-State (\s -> let (v :!: s') = h s in (\z -> let (b :!: z') = runState (f v) z
-                                            in runState (g b) z') s')
-< beta-redex >
-State (\s -> let (v :!: s') = h s in (let (b :!: z') = runState (f v) s' in runState (g b) z'))
+State (\z -> let (b :!: z') = (let (v :!: s') = h z in (runState (f v)) s')
+             in runState (g b) z')
+= < prop let | x = (b :!: z'), y = (v :!: s'), f = h z, h y = (runState (f v)) s', g x = runState (g b) z'>
+State (\z -> let (v :!: s') = h z in (let (b :!: z') = (runState (f v)) s' 
+                                      in runState (g b) z'))
+= < beta-expand >
+= State (\z -> let (v :!: s') = h z in (\s -> let (b :!: z') = (runState (f v)) s
+                                              in runState (g b) z') s')
+= < def runState >
+State (\z -> let (v :!: s') = h z in runState (State (\s -> let (b :!: z') = (runState (f v)) s
+                                                            in runState (g b) z')) s')
+= < beta-expand >
+State (\z -> let (v :!: s') = h z in runState ((\x -> (State (\s -> let (b :!: z') = (runState (f x)) s
+                                                                   in runState (g b) z'))) v) s')
+= < state.2 >
+State (\z -> let (v :!: s') = h z in runState ((\x -> f x >>= g) v) s')
+= < def runState >
+State (\z -> let (v :!: s') = runState (State h) z in runState ((\x -> f x >>= g) v) s')
+= < state.2 >
+(State h) >>= (\x -> f x >>= g)
+= < t :: State a -> t = State h >
+t >>= (\x -> f x >>= g)
